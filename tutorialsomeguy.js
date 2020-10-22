@@ -177,7 +177,11 @@ define([
                 script.
             
             */
-           // get card unique identifier based on its color and value
+            // get card unique identifier based on its color and value
+            getCardUniqueId: function (color, value) {
+                return (color * 13) + (value - 2);
+            },
+
             playCardOnTable: function (playerId, color, value, cardId) {
                 dojo.place(this.format_block('jstpl_cardontable', {
                     x: this.cardWidth * (value - 2),
