@@ -213,12 +213,16 @@ define([
             
             */
 
-            onPlayerHandSelectionChanged: function() {
+            onPlayerHandSelectionChanged: function () {
                 let items = this.playerHand.getSelectedItems();
 
-                if (items.length > 0 ) {
+                if (items.length > 0) {
                     if (this.checkAction('playCard', true)) {
                         let cardId = items[0].id;
+                        let type = items[0].type;
+                        let color = Math.floor(type / 13);
+                        let value = type % 13 + 2;
+                        this.playCardOnTable(this.player_id, color, value, cardId);
                         this.playerHand.unselectAll();
                     }
                     else if (this.checkAction('giveCards')) {
