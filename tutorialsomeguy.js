@@ -74,6 +74,18 @@ define([
 
                 dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
 
+                // cards in player hand
+                for (let [id, card] of Object.entries(gamedatas.hand)) {
+                    let { type: color, type_arg: value } = card;
+                    this.playerHand.addToStockWithId(this.getCardUniqueId(color, value), card.id);
+                }
+
+                // cards on table
+                for (let card of this.gamedatas.cardsOnTable) {
+                    let { type: color, type_arg: value, location_arg: player_id } = card;
+                    this.playCardOnTable(player_id, color, value, card.id);
+                }
+
                 // Setup game notifications to handle (see "setupNotifications" method below)
                 this.setupNotifications();
 
