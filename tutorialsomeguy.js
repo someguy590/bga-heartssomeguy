@@ -61,7 +61,7 @@ define([
                 // player hand
                 this.playerHand = new ebg.stock();
                 this.playerHand.create(this, $('myhand'), this.cardWidth, this.cardHeight);
-                this.playerHand.imageItemsPerRow = 13;
+                this.playerHand.image_items_per_row = 13;
 
                 // create cards types
                 for (let color = 0; color < 4; color++) {
