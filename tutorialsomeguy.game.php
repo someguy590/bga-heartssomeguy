@@ -92,12 +92,19 @@ class TutorialSomeGuy extends Table
 
         // TODO: setup the initial game situation here
         $cards = [];
-        foreach($this->colors as $color_id => $color) {
+        foreach ($this->colors as $color_id => $color) {
             for ($value = 2; $value <= 14; $value++) {
-                $cards[] = ['type'=> $color_id, 'type_arg' => $value, 'nbr' => 1];
+                $cards[] = ['type' => $color_id, 'type_arg' => $value, 'nbr' => 1];
             }
         }
         $this->cards->createCards($cards, 'deck');
+
+        // shuffle deck
+        $this->cards->shuffle('deck');
+        // deal cards
+        $players = $this->loadPlayersBasicInfos();
+        foreach ($players as $player_id => $player)
+            $cards = $this->cards->pickCards(13, 'deck', $player_id);
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
@@ -116,18 +123,20 @@ class TutorialSomeGuy extends Table
     */
     protected function getAllDatas()
     {
-        $result = array();
+        $data = array();
 
         $current_player_id = self::getCurrentPlayerId();    // !! We must only return informations visible by this player !!
 
         // Get information about players
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         $sql = "SELECT player_id id, player_score score FROM player ";
-        $result['players'] = self::getCollectionFromDb($sql);
+        $data['players'] = self::getCollectionFromDb($sql);
 
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
+        $data['hand'] = $this->cards->getCardsInLocation('hand', $current_player_id);
+        $data['cardsOnTable'] = $this->cards->getCardsInLocation('cardsOnTable');
 
-        return $result;
+        return $data;
     }
 
     /*
