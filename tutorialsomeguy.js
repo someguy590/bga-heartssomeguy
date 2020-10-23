@@ -185,7 +185,7 @@ define([
             playCardOnTable: function (playerId, color, value, cardId) {
                 dojo.place(this.format_block('jstpl_cardontable', {
                     x: this.cardWidth * (value - 2),
-                    y: this.cardheight * color,
+                    y: this.cardHeight * color,
                     player_id: playerId
                 }), 'playertablecard_' + playerId);
 
@@ -343,7 +343,7 @@ define([
             },
 
             notif_newScores: function (notif) {
-                for (const {player_id, player_score} of notif.args.newScores) {
+                for (const [player_id, player_score] of Object.entries(notif.args.newScores)) {
                     this.scoreCtrl[player_id].toValue(player_score);
                 }
             }
