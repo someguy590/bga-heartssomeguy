@@ -397,9 +397,8 @@ class TutorialSomeGuy extends Table
                 );
             }
         }
-        $newScores = $this->getObjectListFromDB('SELECT player_id, player_score FROM player');
+        $newScores = $this->getCollectionFromDB('SELECT player_id, player_score FROM player', true);
         $this->notifyAllPlayers('newScores', '', ['newScores' => $newScores]);
-
         // see if game ends
         foreach ($newScores as $player_id => $score) {
             if ($score <= -100) {
