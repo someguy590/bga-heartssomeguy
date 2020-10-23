@@ -378,7 +378,7 @@ class TutorialSomeGuy extends Table
                 $heart_number = $player_to_points[$player_id];
                 $this->notifyAllPlayers(
                     'points',
-                    clienttranslate('${player_name} gets ${nbr} hearts and looses ${nbr} points'),
+                    clienttranslate('${player_name} gets ${nbr} hearts and loses ${nbr} points'),
                     [
                         'player_id' => $player_id,
                         'player_name' => $players[$player_id]['player_name'],
