@@ -81,7 +81,7 @@ define([
                 }
 
                 // cards on table
-                for (let card of this.gamedatas.cardsOnTable) {
+                for (let [id, card] of Object.entries(this.gamedatas.cardsOnTable)) {
                     let { type: color, type_arg: value, location_arg: player_id } = card;
                     this.playCardOnTable(player_id, color, value, card.id);
                 }
