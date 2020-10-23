@@ -38,7 +38,13 @@ class action_tutorialsomeguy extends APP_GameAction
   }
 
   // TODO: defines your action entry points there
-
+  public function playCard()
+  {
+    $this->setAjaxMode();
+    $card_id = $this->getArg('id', AT_int, true);
+    $this->game->playCard($card_id);
+    $this->ajaxResponse();
+  }
 
   /*
     
