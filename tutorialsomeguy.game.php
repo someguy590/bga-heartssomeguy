@@ -99,13 +99,6 @@ class TutorialSomeGuy extends Table
         }
         $this->cards->createCards($cards, 'deck');
 
-        // shuffle deck
-        $this->cards->shuffle('deck');
-        // deal cards
-        $players = $this->loadPlayersBasicInfos();
-        foreach ($players as $player_id => $player)
-            $cards = $this->cards->pickCards(13, 'deck', $player_id);
-
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
 
