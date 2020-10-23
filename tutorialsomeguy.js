@@ -221,12 +221,17 @@ define([
                 let items = this.playerHand.getSelectedItems();
 
                 if (items.length > 0) {
-                    if (this.checkAction('playCard', true)) {
+                    let action = 'playCard';
+                    if (this.checkAction(action, true)) {
                         let cardId = items[0].id;
-                        let type = items[0].type;
-                        let color = Math.floor(type / 13);
-                        let value = type % 13 + 2;
-                        this.playCardOnTable(this.player_id, color, value, cardId);
+                        this.ajaxcall(
+                            `/${this.game_name}/${this.game_name}/${action}.html`,
+                            {
+                                id: cardId,
+                                lock: true
+                            }, this, function (result) { }, function (is_error) { }
+                        );
+
                         this.playerHand.unselectAll();
                     }
                     else if (this.checkAction('giveCards')) {
