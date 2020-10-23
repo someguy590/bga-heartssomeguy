@@ -59,19 +59,70 @@ $machinestates = array(
         "description" => "",
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array("" => 2)
+        "transitions" => array("" => 20)
     ),
 
-    // Note: ID=2 => your first state
+    // new hand
+    20 => [
+        "name" => "newHand",
+        "type" => "game",
+        "action" => 'stNewHand',
+        'updateGameProgression' => true,
+        "transitions" => ['' => 30]
+    ],
 
-    2 => array(
-        "name" => "playerTurn",
-        "description" => clienttranslate('${actplayer} must play a card or pass'),
-        "descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
-        "type" => "activeplayer",
-        "possibleactions" => array("playCard", "pass"),
-        "transitions" => array("playCard" => 2, "pass" => 2)
-    ),
+    21 => [
+        'name' => 'giveCards',
+        'description' => clienttranslate('Some players must choose 3 cards to give to ${direction}'),
+        'descriptionmyturn' => clienttranslate('${you} must choose 3 cards to give to ${direction}'),
+        'type' => 'multipleactiveplayer',
+        'action' => 'stGiveCards',
+        'args' => 'argGiveCards',
+        'possibleactions' => ['giveCards'],
+        'transitions' => ['giveCards' => 22, 'skip' => 22]
+    ],
+
+    22 => [
+        'name' => 'takeCards',
+        'description' => '',
+        'type' => 'game',
+        'action' => 'stTakeCards',
+        'transitions' => ['startHand' => 30, 'skip' => 30]
+    ],
+
+    // trick
+    30 => [
+        'name' => 'newTrick',
+        'type' => 'game',
+        'action' => 'stNewTrick',
+        'transitions' => ['' => 31]
+    ],
+
+    31 => [
+        'name' => 'playerTurn',
+        'description' => clienttranslate('${actplayer} must play a card'),
+        'descriptionmyturn' => clienttranslate('${you} must play a card'),
+        'type' => 'activeplayer',
+        'possibleactions' => ['playCard'],
+        'transitions' => ['playCard' => 32]
+    ],
+
+    32 => [
+        'name' => 'nextPlayer',
+        'description' => '',
+        'type' => 'game',
+        'action' => 'stNextPlayer',
+        'transitions' => ['nextPlayer' => 31, 'nextTrick' => 30, 'endHand' => 40]
+    ],
+
+    // end of hand (scoring, etc.)
+    40 => [
+        'name' => 'endHand',
+        'description' => '',
+        'type' => 'game',
+        'action' => 'stEndHand',
+        'transitions' => ['nextHand' => 20, 'endGame' => 99]
+    ],
 
     /*
     Examples:
