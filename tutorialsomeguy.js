@@ -61,7 +61,7 @@ define([
                 // player hand
                 this.playerHand = new ebg.stock();
                 this.playerHand.create(this, $('myhand'), this.cardWidth, this.cardHeight);
-                this.playerHand.imageItemsPerRow = 13;
+                this.playerHand.image_items_per_row = 13;
 
                 // create cards types
                 for (let color = 0; color < 4; color++) {
@@ -73,6 +73,18 @@ define([
                 }
 
                 dojo.connect(this.playerHand, 'onChangeSelection', this, 'onPlayerHandSelectionChanged');
+
+                // cards in player hand
+                for (let [id, card] of Object.entries(gamedatas.hand)) {
+                    let { type: color, type_arg: value } = card;
+                    this.playerHand.addToStockWithId(this.getCardUniqueId(color, value), card.id);
+                }
+
+                // cards on table
+                for (let [id, card] of Object.entries(this.gamedatas.cardsOnTable)) {
+                    let { type: color, type_arg: value, location_arg: player_id } = card;
+                    this.playCardOnTable(player_id, color, value, card.id);
+                }
 
                 // Setup game notifications to handle (see "setupNotifications" method below)
                 this.setupNotifications();
@@ -165,10 +177,30 @@ define([
                 script.
             
             */
-           // get card unique identifier based on its color and value
-           getCardUniqueId: function(color, value) {
-               return (color * 13) + (value - 2);
-           },
+            // get card unique identifier based on its color and value
+            getCardUniqueId: function (color, value) {
+                return (color * 13) + (value - 2);
+            },
+
+            playCardOnTable: function (playerId, color, value, cardId) {
+                dojo.place(this.format_block('jstpl_cardontable', {
+                    x: this.cardWidth * (value - 2),
+                    y: this.cardheight * color,
+                    player_id: playerId
+                }), 'playertablecard_' + playerId);
+
+                if (playerId != this.player_id) {
+                    this.placeOnObject(`cardontable_${playerId}`, `overall_player_board_${playerId}`);
+                }
+                else {
+                    if ($(`myhand_item_${cardId}`)) {
+                        this.placeOnObject(`cardontable_${playerId}`, `myhand_item_${cardId}`);
+                        this.playerHand.removeFromStockById(cardId);
+                    }
+                }
+
+                this.slideToObject(`cardontable_${playerId}`, `playertablecard_${playerId}`).play();
+            },
 
 
             ///////////////////////////////////////////////////
@@ -185,12 +217,21 @@ define([
             
             */
 
-            onPlayerHandSelectionChanged: function() {
+            onPlayerHandSelectionChanged: function () {
                 let items = this.playerHand.getSelectedItems();
 
-                if (items.length > 0 ) {
-                    if (this.checkAction('playCard', true)) {
+                if (items.length > 0) {
+                    let action = 'playCard';
+                    if (this.checkAction(action, true)) {
                         let cardId = items[0].id;
+                        this.ajaxcall(
+                            `/${this.game_name}/${this.game_name}/${action}.html`,
+                            {
+                                id: cardId,
+                                lock: true
+                            }, this, function (result) { }, function (is_error) { }
+                        );
+
                         this.playerHand.unselectAll();
                     }
                     else if (this.checkAction('giveCards')) {
@@ -253,7 +294,12 @@ define([
                 console.log('notifications subscriptions setup');
 
                 // TODO: here, associate your game notifications with local methods
-
+                dojo.subscribe('newHand', this, 'notif_newHand');
+                dojo.subscribe('playCard', this, 'notif_playCard');
+                dojo.subscribe('trickWin', this, 'notif_trickWin');
+                this.notifqueue.setSynchronous('trickWin', 1000);
+                dojo.subscribe('giveAllCardsToPlayer', this, 'notif_giveAllCardsToPlayer');
+                dojo.subscribe('newScores', this, 'notif_newScores');
                 // Example 1: standard notification handling
                 // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
 
@@ -266,7 +312,41 @@ define([
             },
 
             // TODO: from this point and below, you can write your game notifications handling methods
+            notif_newHand: function (notif) {
+                this.playerHand.removeAll();
 
+                for (let card of Object.values(notif.args.cards)) {
+                    let { type: color, type_arg: value } = card;
+                    this.playerHand.addToStockWithId(this.getCardUniqueId(color, value), card.id);
+                }
+            },
+
+            notif_playCard: function (notif) {
+                // play card on table
+                this.playCardOnTable(notif.args.player_id, notif.args.color, notif.args.value, notif.args.card_id);
+            },
+
+            notif_trickWin: function (notif) {
+
+            },
+
+            notif_giveAllCardsToPlayer: function (notif) {
+                // move cards from table to player, then destroy
+                let winnerId = notif.args.player_id;
+                for (let playerId of Object.keys(this.gamedatas.players)) {
+                    let anim = this.slideToObject(`cardontable_${playerId}`, `overall_player_board_${winnerId}`);
+                    dojo.connect(anim, 'onEnd', function (node) {
+                        dojo.destroy(node);
+                    });
+                    anim.play();
+                }
+            },
+
+            notif_newScores: function (notif) {
+                for (const {player_id, player_score} of notif.args.newScores) {
+                    this.scoreCtrl[player_id].toValue(player_score);
+                }
+            }
             /*
             Example:
             

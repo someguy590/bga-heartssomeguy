@@ -32,3 +32,26 @@ $this->card_types = array(
 );
 
 */
+
+$this->colors = [
+  0 => ['name' => clienttranslate('spade'), 'nametr' => self::_('spade')],
+  1 => ['name' => clienttranslate('heart'), 'nametr' => self::_('heart')],
+  2 => ['name' => clienttranslate('club'), 'nametr' => self::_('club')],
+  3 => ['name' => clienttranslate('diamond'), 'nametr' => self::_('diamond')],
+];
+
+$this->values_label = [
+  2 => '2',
+  3 => '3',
+  4 => '4',
+  5 => '5',
+  6 => '6',
+  7 => '7',
+  8 => '8',
+  9 => '9',
+  10 => '10',
+  11 => clienttranslate('J'),
+  12 => clienttranslate('Q'),
+  13 => clienttranslate('K'),
+  14 => clienttranslate('A')
+];
