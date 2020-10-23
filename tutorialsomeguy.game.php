@@ -176,6 +176,38 @@ class TutorialSomeGuy extends Table
         (note: each method below must match an input method in tutorialsomeguy.action.php)
     */
 
+    function playCard($card_id)
+    {
+        $this->checkAction('playCard');
+        $player_id = $this->getActivePlayerId();
+        $this->cards->moveCard($card_id, 'cardsontable', $player_id);
+
+        $currentCard = $this->cards->getCard($card_id);
+
+        $currentTrickColor = $this->getGameStateValue('trickColor');
+        if ($currentTrickColor == 0)
+            $this->setGameStateValue('trickColor', $currentCard['type']);
+
+        // notify
+        $this->notifyAllPlayers(
+            'playCard',
+            clienttranslate('${player_name} plays ${value_displayed} ${color_displayed}'),
+            [
+                'i18n' => ['color_displayed', 'value_displayed'],
+                'card_id' => $card_id,
+                'player_id' => $player_id,
+                'player_name' => $this->getActivePlayerName(),
+                'value' => $currentCard['type_arg'],
+                'value_displayed' => $this->values_label[$currentCard['type_arg']],
+                'color' => $currentCard['type'],
+                'color_displayed' => $this->colors[$currentCard['type']]['name']
+            ]
+        );
+
+        // next player
+        $this->gamestate->nextState('playCard');
+    }
+
     /*
     
     Example:
@@ -213,6 +245,11 @@ class TutorialSomeGuy extends Table
         game state.
     */
 
+    function argGiveCards()
+    {
+        return [];
+    }
+
     /*
     
     Example for game state "MyGameState":
@@ -238,6 +275,141 @@ class TutorialSomeGuy extends Table
         Here, you can create methods defined as "game state actions" (see "action" property in states.inc.php).
         The action method of state X is called everytime the current game state is set to X.
     */
+
+    function stNewHand()
+    {
+        // take back all cards
+        $this->cards->moveAllCardsInlocation(null, 'deck');
+        $this->cards->shuffle('deck');
+
+        // create deck and deal cards
+        $players = $this->loadPlayersBasicInfos();
+        foreach ($players as $player_id => $player) {
+            $cards = $this->cards->pickCards(13, 'deck', $player_id);
+
+            // notify player about cards
+            $this->notifyPlayer($player_id, 'newHand', '', ['cards' => $cards]);
+        }
+        $this->setGameStateValue('isHeartsPlayed', 0);
+        $this->gamestate->nextState('');
+    }
+
+    function stTakeCards()
+    {
+    }
+
+    function stNewTrick()
+    {
+        $this->setGameStateValue('trickColor', 0);
+        $this->gamestate->nextState();
+    }
+
+    function stNextPlayer()
+    {
+        // active next player or end trick and go to next trick or end the hand
+        if ($this->cards->countCardInLocation('cardsontable') == 4) {
+            // end trick
+            $cards_on_table = $this->cards->getCardsInLocation('cardsontable');
+            $best_value = 0;
+            $best_value_player_id =  null;
+            $currentTrickColor = $this->getGameStateValue('trickColor');
+            foreach ($cards_on_table as $card) {
+                if ($card['type'] == $currentTrickColor) {
+                    if ($best_value_player_id == null || $card['type_arg'] > $best_value) {
+                        $best_value_player_id = $card['location_arg'];
+                        $best_value = $card['type_arg'];
+                    }
+                }
+            }
+            $this->gamestate->changeActivePlayer($best_value_player_id);
+
+            $this->cards->moveAllCardsInLocation('cardsontable', 'cardswon', null, $best_value_player_id);
+
+            // notify
+            $players = $this->loadPlayersBasicInfos();
+            $this->notifyAllPlayers(
+                'trickWin',
+                clienttranslate('${player_name} wins the trick'),
+                [
+                    'player_id' => $best_value_player_id,
+                    'player_name' => $players[$best_value_player_id]['player_name']
+                ]
+            );
+
+            $this->notifyAllPlayers('giveAllCardsToPlayer', '', ['player_id' => $best_value_player_id]);
+
+            if ($this->cards->countCardInLocation('hand') == 0) {
+                // end hand
+                $this->gamestate->nextState('endHand');
+            } else {
+                // end trick
+                $this->gamestate->nextState('nextTrick');
+            }
+        } else {
+            $player_id = $this->activeNextPlayer();
+            $this->giveExtraTime($player_id);
+            $this->gamestate->nextState('nextPlayer');
+        }
+    }
+
+    function stEndHand()
+    {
+        $players = $this->loadPlayersBasicInfos();
+
+        $player_to_points = [];
+        foreach ($players as $player_id => $player) {
+            $player_to_points[$player_id] = 0;
+        }
+
+        // get scores
+        $cards = $this->cards->getCardsInLocation('cardswon');
+        foreach ($cards as $card) {
+            $player_id = $card['location_arg'];
+            if ($card['type'] == 1) {
+                $player_to_points[$player_id]++;
+            }
+        }
+
+        // apply scores
+        foreach ($player_to_points as $player_id => $points) {
+            if ($points != 0) {
+                $sql = "UPDATE player SET player_score=player_score-$points WHERE player_id=$player_id";
+                $this->DbQuery($sql);
+                $heart_number = $player_to_points[$player_id];
+                $this->notifyAllPlayers(
+                    'points',
+                    clienttranslate('${player_name} gets ${nbr} hearts and looses ${nbr} points'),
+                    [
+                        'player_id' => $player_id,
+                        'player_name' => $players[$player_id]['player_name'],
+                        'nbr' => $heart_number
+                    ]
+                );
+            }
+            else {
+                $this->notifyAllPlayers(
+                    'points',
+                    clienttranslate('${player_name} did not get any hearts'),
+                    [
+                        // 'player_id' => $player_id,
+                        'player_name' => $players[$player_id]['player_name']
+                    ]
+                );
+            }
+        }
+        $newScores = $this->getObjectListFromDB('SELECT player_id, player_score FROM player');
+        $this->notifyAllPlayers('newScores', '', ['newScores' => $newScores]);
+
+        // see if game ends
+        foreach ($newScores as $player_id => $score) {
+            if ($score <= -100) {
+                $this->gamestate->nextState('endGame');
+                return;
+            }
+        }
+
+        $this->gamestate->nextState('nextHand');
+    }
 
     /*
     

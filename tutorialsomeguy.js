@@ -294,7 +294,12 @@ define([
                 console.log('notifications subscriptions setup');
 
                 // TODO: here, associate your game notifications with local methods
-
+                dojo.subscribe('newHand', this, 'notif_newHand');
+                dojo.subscribe('playCard', this, 'notif_playCard');
+                dojo.subscribe('trickWin', this, 'notif_trickWin');
+                this.notifqueue.setSynchronous('trickWin', 1000);
+                dojo.subscribe('giveAllCardsToPlayer', this, 'notif_giveAllCardsToPlayer');
+                dojo.subscribe('newScores', this, 'notif_newScores');
                 // Example 1: standard notification handling
                 // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
 
@@ -307,7 +312,41 @@ define([
             },
 
             // TODO: from this point and below, you can write your game notifications handling methods
+            notif_newHand: function (notif) {
+                this.playerHand.removeAll();
 
+                for (let card of Object.values(notif.args.cards)) {
+                    let { type: color, type_arg: value } = card;
+                    this.playerHand.addToStockWithId(this.getCardUniqueId(color, value), card.id);
+                }
+            },
+
+            notif_playCard: function (notif) {
+                // play card on table
+                this.playCardOnTable(notif.args.player_id, notif.args.color, notif.args.value, notif.args.card_id);
+            },
+
+            notif_trickWin: function (notif) {
+
+            },
+
+            notif_giveAllCardsToPlayer: function (notif) {
+                // move cards from table to player, then destroy
+                let winnerId = notif.args.player_id;
+                for (let playerId of Object.keys(this.gamedatas.players)) {
+                    let anim = this.slideToObject(`cardontable_${playerId}`, `overall_player_board_${winnerId}`);
+                    dojo.connect(anim, 'onEnd', function (node) {
+                        dojo.destroy(node);
+                    });
+                    anim.play();
+                }
+            },
+
+            notif_newScores: function (notif) {
+                for (const {player_id, player_score} of notif.args.newScores) {
+                    this.scoreCtrl[player_id].toValue(player_score);
+                }
+            }
             /*
             Example:
             
