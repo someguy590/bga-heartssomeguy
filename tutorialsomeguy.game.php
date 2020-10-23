@@ -82,7 +82,7 @@ class TutorialSomeGuy extends Table
         // Init global values with their initial values
         //self::setGameStateInitialValue( 'my_first_global_variable', 0 );
         self::setGameStateInitialValue('currentHandType', 0);
-        self::setGameStateInitialValue('trickColor', 0);
+        self::setGameStateInitialValue('trickColor', -1);
         self::setGameStateInitialValue('isHeartsPlayed', 0);
 
         // Init game statistics
@@ -185,7 +185,7 @@ class TutorialSomeGuy extends Table
         $currentCard = $this->cards->getCard($card_id);
 
         $currentTrickColor = $this->getGameStateValue('trickColor');
-        if ($currentTrickColor == 0)
+        if ($currentTrickColor == -1)
             $this->setGameStateValue('trickColor', $currentCard['type']);
 
         // notify
@@ -300,7 +300,7 @@ class TutorialSomeGuy extends Table
 
     function stNewTrick()
     {
-        $this->setGameStateValue('trickColor', 0);
+        $this->setGameStateValue('trickColor', -1);
         $this->gamestate->nextState();
     }
 
